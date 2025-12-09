@@ -10,6 +10,7 @@
 // [WorkoutViewModel.swift - Full File v1.4 (Beats: 2/3, Step Progress, 0.1s)]
 // [WorkoutViewModel.swift - Full File v1.6 (Beats 1/2/3, Step Progress, Optional 1-2-3)]
 // [WorkoutViewModel.swift - Full File v1.6.1 (Bugfix: show 100% at phase end)]
+// [WorkoutViewModel.swift - Full File v1.6.2 (Sync beats & bars)]
 import Foundation
 import Combine
 
@@ -43,9 +44,7 @@ final class WorkoutViewModel: ObservableObject {
     private var timer: Timer?
     private let tick: Double = 0.1
     private let eps: Double  = 1e-6
-
-    // MARK: - Internal guards
-    private var phaseSwitchPending = false   // ensures we don’t switch twice
+    private var phaseSwitchPending = false
 
     // MARK: - Derived
     var repDuration: Double { concDuration + eccDuration }
@@ -61,22 +60,31 @@ final class WorkoutViewModel: ObservableObject {
     /// Total time for the active phase
     var phaseTotal: Double { phase == .concentric ? concDuration : eccDuration }
 
+    // MARK: - Unified beat math
+    private func completedBeats(elapsed: Double, subBeat: Double, totalBeats: Int) -> Int {
+        guard totalBeats > 0 else { return 0 }
+        let sb = max(subBeat, eps)
+        return min(Int((elapsed + eps) / sb), totalBeats)
+    }
+
     // MARK: - Step Progress (JUMPS at beat boundaries)
+    /// Concentric bar: jumps in [beats] steps while concentric; shows 1.0 during eccentric.
     var concentricStepProgress: Double {
         guard currentRep > 0 else { return 0 }
         if phase == .concentric {
-            let completedBeats = min(Int(floor((phaseElapsed + eps) / concSubBeat)), concBeatsEffective)
-            return Double(completedBeats) / Double(concBeatsEffective)
+            let cb = completedBeats(elapsed: phaseElapsed, subBeat: concSubBeat, totalBeats: concBeatsEffective)
+            return Double(cb) / Double(concBeatsEffective)
         } else {
             return 1.0
         }
     }
 
+    /// Eccentric bar: 0 during concentric; jumps in [beats] steps while eccentric.
     var eccentricStepProgress: Double {
         guard currentRep > 0 else { return 0 }
         if phase == .eccentric {
-            let completedBeats = min(Int(floor((phaseElapsed + eps) / eccSubBeat)), eccBeatsEffective)
-            return Double(completedBeats) / Double(eccBeatsEffective)
+            let cb = completedBeats(elapsed: phaseElapsed, subBeat: eccSubBeat, totalBeats: eccBeatsEffective)
+            return Double(cb) / Double(eccBeatsEffective)
         } else {
             return 0.0
         }
@@ -91,15 +99,33 @@ final class WorkoutViewModel: ObservableObject {
         guard currentRep > 0 else { return 0 }
         return phase == .eccentric ? phaseElapsed : 0
     }
+
+    /// Beat number (1-based) for the *active* phase, used in the coach cue
     var currentBeatInPhase: Int {
         guard currentRep > 0 else { return 0 }
         if phase == .concentric {
-            return min(Int(phaseElapsed / concSubBeat) + 1, concBeatsEffective)
+            let cb = completedBeats(elapsed: phaseElapsed, subBeat: concSubBeat, totalBeats: concBeatsEffective)
+            return min(cb + 1, concBeatsEffective)
         } else {
-            return min(Int(phaseElapsed / eccSubBeat) + 1, eccBeatsEffective)
+            let cb = completedBeats(elapsed: phaseElapsed, subBeat: eccSubBeat, totalBeats: eccBeatsEffective)
+            return min(cb + 1, eccBeatsEffective)
         }
     }
+
     var phaseBeats: Int { phase == .concentric ? concBeatsEffective : eccBeatsEffective }
+
+    /// Beat number to highlight under each bar (0 = no highlight when phase inactive)
+    var activeBeatConcentric: Int {
+        guard currentRep > 0, phase == .concentric else { return 0 }
+        let cb = completedBeats(elapsed: phaseElapsed, subBeat: concSubBeat, totalBeats: concBeatsEffective)
+        return min(cb + 1, concBeatsEffective)
+    }
+
+    var activeBeatEccentric: Int {
+        guard currentRep > 0, phase == .eccentric else { return 0 }
+        let cb = completedBeats(elapsed: phaseElapsed, subBeat: eccSubBeat, totalBeats: eccBeatsEffective)
+        return min(cb + 1, eccBeatsEffective)
+    }
 
     // MARK: - Controls
     func start() {
@@ -156,8 +182,7 @@ final class WorkoutViewModel: ObservableObject {
         let target = (phase == .concentric) ? concDuration : eccDuration
         phaseElapsed += tick
 
-        // If we’ve reached or exceeded the end of this phase, snap to 100%,
-        // then switch phase on the next runloop pass so the UI can render full completion.
+        // Snap to full completion at boundary, then flip phase on next loop
         if phaseElapsed + eps >= target {
             phaseElapsed = target
             if !phaseSwitchPending {
@@ -195,3 +220,4 @@ final class WorkoutViewModel: ObservableObject {
         isFinished = true
     }
 }
+
