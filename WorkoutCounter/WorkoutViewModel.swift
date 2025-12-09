@@ -219,5 +219,35 @@ final class WorkoutViewModel: ObservableObject {
         pause()
         isFinished = true
     }
+    
+    // [WorkoutViewModel.swift - CHANGED v1.7 (add apply/make preset helpers)]
+    // MARK: - Preset helpers
+        func apply(preset: WorkoutPreset) {
+            // It’s safer to pause before applying
+            pause()
+            sets = preset.sets
+            repsPerSet = preset.repsPerSet
+            concDuration = preset.concDuration
+            eccDuration  = preset.eccDuration
+            concBeats = preset.concBeats
+            eccBeats  = preset.eccBeats
+            // Do not alter visual toggles; they are user UI prefs
+            reset() // reset progress counters after applying
+        }
+
+        func makePreset(named name: String) -> WorkoutPreset {
+            WorkoutPreset(
+                name: name,
+                sets: sets,
+                repsPerSet: repsPerSet,
+                concDuration: concDuration,
+                eccDuration: eccDuration,
+                concBeats: concBeats,
+                eccBeats: eccBeats
+            )
+        }
+    
 }
+
+
 
