@@ -8,205 +8,198 @@
 
 // [WorkoutView.swift - UI Layout]
 // [WorkoutView.swift - Full File v1.3 (Two Progress Bars UI + Safe Controls)]
+// [WorkoutView.swift - Full File v1.4 (Beats UI + Step Progress Jumps)]
 import SwiftUI
 
 struct WorkoutView: View {
-    // View owns the lifecycle of the brain (ViewModel)
     @StateObject private var vm = WorkoutViewModel()
 
     var body: some View {
         VStack(spacing: 28) {
 
             // ───────────────────────────────────────────────────────────────
-            // [Inputs] Sets, Reps, Phase Durations (disabled while running)
+            // INPUTS (disabled while running to avoid mid-rep surprises)
             // ───────────────────────────────────────────────────────────────
             VStack(alignment: .leading, spacing: 18) {
 
-                // [WorkoutView.swift/Input - Sets]
                 HStack {
                     Text("Number of sets")
                     Spacer()
                     Stepper(value: $vm.sets, in: 1...50) {
-                        Text("\(vm.sets)")
-                            .monospacedDigit()
+                        Text("\(vm.sets)").monospacedDigit()
                     }
-                    .accessibilityIdentifier("setsStepper")
                 }
 
-                // [WorkoutView.swift/Input - Reps]
                 HStack {
                     Text("Number of reps")
                     Spacer()
                     Stepper(value: $vm.repsPerSet, in: 1...500) {
-                        Text("\(vm.repsPerSet)")
-                            .monospacedDigit()
+                        Text("\(vm.repsPerSet)").monospacedDigit()
                     }
-                    .accessibilityIdentifier("repsStepper")
                 }
 
-                // [WorkoutView.swift/Input - Phase Durations]
+                // Durations
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("Time interval concentric phase")
+                        Text("Concentric duration")
                         Spacer()
                         Stepper(value: $vm.concDuration, in: 0.1...10.0, step: 0.1) {
-                            Text(String(format: "%.1fs", vm.concDuration))
-                                .monospacedDigit()
+                            Text(String(format: "%.1fs", vm.concDuration)).monospacedDigit()
                         }
-                        .accessibilityIdentifier("concStepper")
                     }
                     HStack {
-                        Text("Time interval eccentric phase")
+                        Text("Eccentric duration")
                         Spacer()
                         Stepper(value: $vm.eccDuration, in: 0.1...10.0, step: 0.1) {
-                            Text(String(format: "%.1fs", vm.eccDuration))
-                                .monospacedDigit()
+                            Text(String(format: "%.1fs", vm.eccDuration)).monospacedDigit()
                         }
-                        .accessibilityIdentifier("eccStepper")
                     }
                 }
 
-                // [WorkoutView.swift/Derived - Rep Duration Hint]
+                // Beats (2 or 3) – segmented
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Concentric beats")
+                        Spacer()
+                        Picker("Concentric beats", selection: $vm.concBeats) {
+                            Text("2").tag(2)
+                            Text("3").tag(3)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 120)
+                    }
+
+                    HStack {
+                        Text("Eccentric beats")
+                        Spacer()
+                        Picker("Eccentric beats", selection: $vm.eccBeats) {
+                            Text("2").tag(2)
+                            Text("3").tag(3)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 120)
+                    }
+                }
+
                 Text(String(format: "Rep duration: %.1fs", vm.repDuration))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("repDurationHint")
             }
             .font(.title3)
             .padding(.horizontal)
-            .disabled(vm.isRunning) // prevent mid-rep reconfiguration to keep UX predictable
+            .disabled(vm.isRunning)
 
             // ───────────────────────────────────────────────────────────────
-            // [Status + Dual Progress Bars]
+            // STATUS + STEP PROGRESS (JUMPS)
             // ───────────────────────────────────────────────────────────────
-            VStack(spacing: 12) {
-                // [WorkoutView.swift/Status - Set & Rep]
+            VStack(spacing: 16) {
                 Text(statusTitle)
-                    .font(.headline)
-                    .accessibilityIdentifier("statusTitle")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .monospacedDigit()
 
-                // [WorkoutView.swift/Status - Phase Label]
                 Text(phaseSubtitle)
-                    .font(.subheadline)
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("phaseSubtitle")
 
-                // [WorkoutView.swift/Progress - Concentric]
+                // Concentric bar (jumps)
                 VStack(spacing: 6) {
                     HStack {
                         Text("Concentric")
-                            .font(.subheadline)
+                            .font(.title3.weight(.semibold))
                         Spacer()
-                        Text("\(String(format: "%.1f", vm.concElapsedDisplay)) / \(String(format: "%.1f", vm.concDuration)) s")
-                            .font(.caption)
+                        Text("\(String(format: \"%.1f\", vm.concElapsedDisplay)) / \(String(format: \"%.1f\", vm.concDuration)) s")
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
-                    ProgressView(value: vm.concentricProgress)
+                    ProgressView(value: vm.concentricStepProgress)
                         .progressViewStyle(.linear)
                         .tint(vm.phase == .concentric ? .primary : .secondary)
-                        .animation(.easeInOut(duration: 0.12), value: vm.concentricProgress)
-                        .accessibilityIdentifier("concentricProgress")
+                        .animation(.easeInOut(duration: 0.1), value: vm.concentricStepProgress)
+                        .scaleEffect(y: 1.3, anchor: .center)
                 }
 
-                // [WorkoutView.swift/Progress - Eccentric]
+                // Eccentric bar (jumps)
                 VStack(spacing: 6) {
                     HStack {
                         Text("Eccentric")
-                            .font(.subheadline)
+                            .font(.title3.weight(.semibold))
                         Spacer()
-                        Text("\(String(format: "%.1f", vm.eccElapsedDisplay)) / \(String(format: "%.1f", vm.eccDuration)) s")
-                            .font(.caption)
+                        Text("\(String(format: \"%.1f\", vm.eccElapsedDisplay)) / \(String(format: \"%.1f\", vm.eccDuration)) s")
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
-                    ProgressView(value: vm.eccentricProgress)
+                    ProgressView(value: vm.eccentricStepProgress)
                         .progressViewStyle(.linear)
                         .tint(vm.phase == .eccentric ? .primary : .secondary)
-                        .animation(.easeInOut(duration: 0.12), value: vm.eccentricProgress)
-                        .accessibilityIdentifier("eccentricProgress")
+                        .animation(.easeInOut(duration: 0.1), value: vm.eccentricStepProgress)
+                        .scaleEffect(y: 1.3, anchor: .center)
                 }
 
-                // [WorkoutView.swift/Cue - Coach-Style Rhythm] (optional visual help)
+                // Coach-style cue: show current beat of total
                 Text(coachCueLine)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("coachCue")
             }
             .padding(.horizontal)
 
             Spacer(minLength: 8)
 
             // ───────────────────────────────────────────────────────────────
-            // [Controls] Play/Resume, Pause, Reset
+            // CONTROLS
             // ───────────────────────────────────────────────────────────────
             HStack(spacing: 40) {
-                // [WorkoutView.swift/Control - Play or Resume]
                 Button {
-                    if vm.isFinished || vm.currentRep == 0 {
-                        vm.start()
-                    } else {
-                        vm.resume()
-                    }
-                } label: {
-                    controlCircle(icon: "play.fill", label: "PLAY")
-                }
-                .accessibilityIdentifier("playButton")
+                    if vm.isFinished || vm.currentRep == 0 { vm.start() } else { vm.resume() }
+                } label: { controlCircle(icon: "play.fill", label: "PLAY") }
 
-                // [WorkoutView.swift/Control - Pause]
                 Button {
                     vm.pause()
-                } label: {
-                    controlCircle(icon: "pause.fill", label: "PAUSE")
-                }
+                } label: { controlCircle(icon: "pause.fill", label: "PAUSE") }
                 .disabled(!vm.isRunning)
                 .opacity(vm.isRunning ? 1 : 0.35)
-                .accessibilityIdentifier("pauseButton")
 
-                // [WorkoutView.swift/Control - Reset]
                 Button {
                     vm.reset()
-                } label: {
-                    controlCircle(icon: "arrow.counterclockwise", label: "RESET")
-                }
-                .accessibilityIdentifier("resetButton")
+                } label: { controlCircle(icon: "arrow.counterclockwise", label: "RESET") }
             }
             .padding(.bottom, 24)
         }
         .padding(.top, 8)
     }
 
-    // ────────────────────────────────────────────────────────────
+    // MARK: - Private UI helpers
 
-    // MARK: - View helpers (computed strings + small control factory)
     private var statusTitle: String {
-        // compact status line
-        "Set \(vm.currentSet)/\(vm.sets)   ·   Rep \(max(vm.currentRep, 0))/\(vm.repsPerSet)"
+        "Set \(vm.currentSet)/\(vm.sets) · Rep \(max(vm.currentRep, 0))/\(vm.repsPerSet)"
     }
 
     private var phaseSubtitle: String {
-        let elapsed = String(format: "%.1f", vm.phaseElapsed)
-        let total = String(format: "%.1f", vm.phaseTotal)
-        return "\(vm.phase.rawValue)  \(elapsed) / \(total) s"
+        if vm.isFinished { return "Finished — great job!" }
+        if vm.currentRep == 0 { return "Ready" }
+        return "\(vm.phase.rawValue)  \(String(format: \"%.1f\", vm.phaseElapsed)) / \(String(format: \"%.1f\", vm.phaseTotal)) s"
     }
 
     private var coachCueLine: String {
-        guard vm.currentRep > 0 && vm.isRunning else { return "" }
-        let remaining = max(vm.phaseTotal - vm.phaseElapsed, 0)
-        let rem = String(format: "%.1f", remaining)
-        return vm.phase == .concentric ? "Contract — \(rem)s remaining" : "Lengthen — \(rem)s remaining"
+        guard vm.currentRep > 0 else { return "—" }
+        // e.g., "Beat 2/3 (Concentric) | Rep 7"
+        return "Beat \(vm.currentBeatInPhase)/\(vm.phaseBeats) (\(vm.phase.rawValue))  |  Rep \(vm.currentRep)"
     }
 
+    @ViewBuilder
     private func controlCircle(icon: String, label: String) -> some View {
-        ZStack {
-            Circle()
-                .stroke(.primary, lineWidth: 2)
-                .frame(width: 72, height: 72)
+        VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: 28, weight: .bold))
+                .frame(width: 70, height: 70)
+                .background(Circle().strokeBorder(.primary, lineWidth: 2))
             Text(label)
-                .font(.caption2)
-                .offset(y: 22)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
+
+// [WorkoutView.swift - Live Preview]
+#Preview { WorkoutView() }

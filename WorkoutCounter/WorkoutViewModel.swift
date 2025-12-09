@@ -7,20 +7,28 @@
 
 // [WorkoutViewModel.swift - Core Logic]
 // [WorkoutViewModel.swift - Full File v1.3 (Phased Timer + Two Progress Bars, 0.1s)]
+// [WorkoutViewModel.swift - Full File v1.4 (Beats: 2/3, Step Progress, 0.1s)]
+
 import Foundation
 import Combine
 
 @MainActor
 final class WorkoutViewModel: ObservableObject {
-    // MARK: - Configuration (editable from the UI)
+    // MARK: - Configuration
     @Published var sets: Int = 3
     @Published var repsPerSet: Int = 25
-    @Published var concDuration: Double = 3.0   // seconds, 0.1 ... 10.0
-    @Published var eccDuration: Double  = 2.0   // seconds, 0.1 ... 10.0
 
-    // MARK: - Runtime State (read-only to the View)
+    /// Phase durations in seconds (0.1 ... 10.0)
+    @Published var concDuration: Double = 3.0
+    @Published var eccDuration:  Double = 2.0
+
+    /// Number of discrete beats (jumps) per phase. Allowed: 2 or 3
+    @Published var concBeats: Int = 3
+    @Published var eccBeats:  Int = 3
+
+    // MARK: - Runtime State
     @Published private(set) var currentSet: Int = 1
-    @Published private(set) var currentRep: Int = 0     // stays 0 until Start
+    @Published private(set) var currentRep: Int = 0
     @Published private(set) var phase: WorkoutPhase = .concentric
     @Published private(set) var phaseElapsed: Double = 0.0
     @Published private(set) var isRunning: Bool = false
@@ -28,53 +36,73 @@ final class WorkoutViewModel: ObservableObject {
 
     // MARK: - Timer
     private var timer: Timer?
-    private let tick: Double = 0.1     // 100ms resolution supports 0.1s phase steps
-    private let eps: Double  = 1e-6    // tiny epsilon for float comparisons
+    private let tick: Double = 0.1      // 100ms tick to support 0.1s resolution
+    private let eps: Double  = 1e-6
 
     // MARK: - Derived
     var repDuration: Double { concDuration + eccDuration }
 
-    /// Total time for the current phase
+    /// Safety clamp (only 2 or 3 supported)
+    private var concBeatsClamped: Int { min(max(concBeats, 2), 3) }
+    private var eccBeatsClamped:  Int { min(max(eccBeats,  2), 3) }
+
+    /// Sub-beat durations per phase
+    private var concSubBeat: Double { concDuration / Double(concBeatsClamped) }
+    private var eccSubBeat:  Double { eccDuration  / Double(eccBeatsClamped) }
+
+    /// Total for the current phase
     var phaseTotal: Double {
         phase == .concentric ? concDuration : eccDuration
     }
 
-    /// 0→1 across the *current* phase (for a generic single progress bar if you need it)
-    var phaseProgress: Double {
-        guard phaseTotal > 0 else { return 0 }
-        return min(max(phaseElapsed / phaseTotal, 0), 1)
-    }
+    // MARK: - Step Progress (JUMPS at beat boundaries)
 
-    // MARK: - Dual Progress Bars (per-phase)
-    /// Concentric bar fills 0→1 while in concentric, stays at 1 during eccentric, resets on next rep.
-    var concentricProgress: Double {
+    /// Concentric bar: jumps in 2 or 3 steps while in concentric;
+    /// shows 1.0 during eccentric (concentric already finished this rep).
+    var concentricStepProgress: Double {
         guard currentRep > 0 else { return 0 }
         if phase == .concentric {
-            return concDuration > 0 ? min(phaseElapsed / concDuration, 1) : 0
+            let completedBeats = min(Int(floor((phaseElapsed + eps) / concSubBeat)), concBeatsClamped)
+            return Double(completedBeats) / Double(concBeatsClamped)
         } else {
-            return concDuration > 0 ? 1 : 0
+            return 1.0
         }
     }
 
-    /// Eccentric bar is 0 during concentric and fills 0→1 while in eccentric, resets on next rep.
-    var eccentricProgress: Double {
+    /// Eccentric bar: 0 during concentric; jumps in 2 or 3 steps while in eccentric.
+    var eccentricStepProgress: Double {
         guard currentRep > 0 else { return 0 }
         if phase == .eccentric {
-            return eccDuration > 0 ? min(phaseElapsed / eccDuration, 1) : 0
+            let completedBeats = min(Int(floor((phaseElapsed + eps) / eccSubBeat)), eccBeatsClamped)
+            return Double(completedBeats) / Double(eccBeatsClamped)
         } else {
-            return 0
+            return 0.0
         }
     }
 
-    /// Nicely formatted elapsed values for labels beside each bar
+    /// Display helpers for labels beside each bar
     var concElapsedDisplay: Double {
         guard currentRep > 0 else { return 0 }
         return phase == .concentric ? phaseElapsed : concDuration
     }
-
     var eccElapsedDisplay: Double {
         guard currentRep > 0 else { return 0 }
         return phase == .eccentric ? phaseElapsed : 0
+    }
+
+    /// Current beat number within the active phase (1-based)
+    var currentBeatInPhase: Int {
+        guard currentRep > 0 else { return 0 }
+        if phase == .concentric {
+            return min(Int(phaseElapsed / concSubBeat) + 1, concBeatsClamped)
+        } else {
+            return min(Int(phaseElapsed / eccSubBeat) + 1, eccBeatsClamped)
+        }
+    }
+
+    /// Total beats for the active phase
+    var phaseBeats: Int {
+        phase == .concentric ? concBeatsClamped : eccBeatsClamped
     }
 
     // MARK: - Controls
@@ -103,10 +131,10 @@ final class WorkoutViewModel: ObservableObject {
         resetProgress()
     }
 
-    // MARK: - Internal helpers
+    // MARK: - Internal
     private var validDurations: Bool {
-        concDuration >= 0.1 && concDuration <= 10.0 &&
-        eccDuration  >= 0.1 && eccDuration  <= 10.0
+        (0.1...10.0).contains(concDuration) &&
+        (0.1...10.0).contains(eccDuration)
     }
 
     private func resetProgress() {
@@ -119,16 +147,12 @@ final class WorkoutViewModel: ObservableObject {
 
     private func scheduleTimer() {
         timer?.invalidate()
-        // Use .common so UI interactions don’t pause the timer.
         timer = Timer.scheduledTimer(withTimeInterval: tick, repeats: true) { [weak self] _ in
-            // Ensure we hop back to the main actor for state changes.
             Task { @MainActor in
                 self?.tickForward()
             }
         }
-        if let timer {
-            RunLoop.current.add(timer, forMode: .common)
-        }
+        if let timer { RunLoop.current.add(timer, forMode: .common) }
     }
 
     private func tickForward() {
