@@ -107,7 +107,7 @@ struct WorkoutView: View {
                         Text("Concentric")
                             .font(.title3.weight(.semibold))
                         Spacer()
-                        Text("\(String(format: \"%.1f\", vm.concElapsedDisplay)) / \(String(format: \"%.1f\", vm.concDuration)) s")
+                        Text("\(String(format: "%.1f", vm.concElapsedDisplay)) / \(String(format: "%.1f", vm.concDuration)) s")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -125,7 +125,7 @@ struct WorkoutView: View {
                         Text("Eccentric")
                             .font(.title3.weight(.semibold))
                         Spacer()
-                        Text("\(String(format: \"%.1f\", vm.eccElapsedDisplay)) / \(String(format: \"%.1f\", vm.eccDuration)) s")
+                        Text("\(String(format: "%.1f", vm.eccElapsedDisplay)) / \(String(format: "%.1f", vm.eccDuration)) s")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
@@ -178,7 +178,7 @@ struct WorkoutView: View {
     private var phaseSubtitle: String {
         if vm.isFinished { return "Finished — great job!" }
         if vm.currentRep == 0 { return "Ready" }
-        return "\(vm.phase.rawValue)  \(String(format: \"%.1f\", vm.phaseElapsed)) / \(String(format: \"%.1f\", vm.phaseTotal)) s"
+        return "\(vm.phase.rawValue)  \(String(format: "%.1f", vm.phaseElapsed)) / \(String(format: "%.1f", vm.phaseTotal)) s"
     }
 
     private var coachCueLine: String {
