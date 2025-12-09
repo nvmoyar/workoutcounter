@@ -9,6 +9,7 @@
 // [WorkoutView.swift - UI Layout]
 // [WorkoutView.swift - Full File v1.3 (Two Progress Bars UI + Safe Controls)]
 // [WorkoutView.swift - Full File v1.4 (Beats UI + Step Progress Jumps)]
+// [WorkoutView.swift - Full File v1.6 (Beats 1/2/3, Step Progress, Optional 1-2-3 Rows)]
 import SwiftUI
 
 struct WorkoutView: View {
@@ -56,29 +57,37 @@ struct WorkoutView: View {
                     }
                 }
 
-                // Beats (2 or 3) – segmented
+                // Beats (1, 2 or 3) – segmented pickers
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Concentric beats")
                         Spacer()
                         Picker("Concentric beats", selection: $vm.concBeats) {
+                            Text("1").tag(1)
                             Text("2").tag(2)
                             Text("3").tag(3)
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 120)
+                        .frame(width: 160)
                     }
 
                     HStack {
                         Text("Eccentric beats")
                         Spacer()
                         Picker("Eccentric beats", selection: $vm.eccBeats) {
+                            Text("1").tag(1)
                             Text("2").tag(2)
                             Text("3").tag(3)
                         }
                         .pickerStyle(.segmented)
-                        .frame(width: 120)
+                        .frame(width: 160)
                     }
+                }
+
+                // Optional 1-2-3 numeric beat display toggles
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("Show 1-2-3 (Concentric)", isOn: $vm.showConcBeatNumbers)
+                    Toggle("Show 1-2-3 (Eccentric)",  isOn: $vm.showEccBeatNumbers)
                 }
 
                 Text(String(format: "Rep duration: %.1fs", vm.repDuration))
@@ -90,7 +99,7 @@ struct WorkoutView: View {
             .disabled(vm.isRunning)
 
             // ───────────────────────────────────────────────────────────────
-            // STATUS + STEP PROGRESS (JUMPS)
+            // STATUS + STEP PROGRESS + OPTIONAL BEAT ROWS
             // ───────────────────────────────────────────────────────────────
             VStack(spacing: 16) {
                 Text(statusTitle)
@@ -101,7 +110,7 @@ struct WorkoutView: View {
                     .font(.system(size: 22, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
 
-                // Concentric bar (jumps)
+                // Concentric (step progress + optional "1 2 3")
                 VStack(spacing: 6) {
                     HStack {
                         Text("Concentric")
@@ -117,9 +126,14 @@ struct WorkoutView: View {
                         .tint(vm.phase == .concentric ? .primary : .secondary)
                         .animation(.easeInOut(duration: 0.1), value: vm.concentricStepProgress)
                         .scaleEffect(y: 1.3, anchor: .center)
+
+                    if vm.showConcBeatNumbers {
+                        beatRow(total: vm.concBeatsEffective,
+                                activeIndex: vm.phase == .concentric ? vm.currentBeatInPhase : 0)
+                    }
                 }
 
-                // Eccentric bar (jumps)
+                // Eccentric (step progress + optional "1 2 3")
                 VStack(spacing: 6) {
                     HStack {
                         Text("Eccentric")
@@ -135,9 +149,14 @@ struct WorkoutView: View {
                         .tint(vm.phase == .eccentric ? .primary : .secondary)
                         .animation(.easeInOut(duration: 0.1), value: vm.eccentricStepProgress)
                         .scaleEffect(y: 1.3, anchor: .center)
+
+                    if vm.showEccBeatNumbers {
+                        beatRow(total: vm.eccBeatsEffective,
+                                activeIndex: vm.phase == .eccentric ? vm.currentBeatInPhase : 0)
+                    }
                 }
 
-                // Coach-style cue: show current beat of total
+                // Coach-style cue: show current beat & phase
                 Text(coachCueLine)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -183,7 +202,6 @@ struct WorkoutView: View {
 
     private var coachCueLine: String {
         guard vm.currentRep > 0 else { return "—" }
-        // e.g., "Beat 2/3 (Concentric) | Rep 7"
         return "Beat \(vm.currentBeatInPhase)/\(vm.phaseBeats) (\(vm.phase.rawValue))  |  Rep \(vm.currentRep)"
     }
 
@@ -199,7 +217,24 @@ struct WorkoutView: View {
                 .foregroundStyle(.secondary)
         }
     }
+
+    /// Renders a row like "1 2 3" (or just "1"), highlighting the current beat index (1-based).
+    @ViewBuilder
+    private func beatRow(total: Int, activeIndex: Int) -> some View {
+        HStack(spacing: 16) {
+            ForEach(1...total, id: \.self) { i in
+                Text("\(i)")
+                    .font(.title3.weight(i == activeIndex ? .bold : .regular))
+                    .foregroundStyle(i == activeIndex ? .primary : .secondary)
+                    .opacity(i == activeIndex ? 1 : 0.35)
+                    .monospacedDigit()
+            }
+        }
+        .padding(.top, 2)
+        .accessibilityIdentifier("beatRow\(total)")
+    }
 }
 
 // [WorkoutView.swift - Live Preview]
 #Preview { WorkoutView() }
+
