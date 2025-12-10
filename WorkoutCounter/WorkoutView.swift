@@ -179,13 +179,13 @@ struct WorkoutView: View {
                 }
             }
 
-            // Beats (1,2,3)
+            // Beats (1,2,3,4)
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text("Concentric beats")
                     Spacer()
                     Picker("Concentric beats", selection: $vm.concBeats) {
-                        Text("1").tag(1); Text("2").tag(2); Text("3").tag(3)
+                        Text("1").tag(1); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 160)
@@ -194,7 +194,7 @@ struct WorkoutView: View {
                     Text("Eccentric beats")
                     Spacer()
                     Picker("Eccentric beats", selection: $vm.eccBeats) {
-                        Text("1").tag(1); Text("2").tag(2); Text("3").tag(3)
+                        Text("1").tag(1); Text("2").tag(2); Text("3").tag(3); Text("4").tag(4)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 160)

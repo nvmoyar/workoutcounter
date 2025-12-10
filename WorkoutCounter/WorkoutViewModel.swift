@@ -24,9 +24,9 @@ final class WorkoutViewModel: ObservableObject {
     @Published var concDuration: Double = 3.0
     @Published var eccDuration:  Double = 2.0
 
-    /// Discrete beats (pulses) per phase. Allowed: 1, 2, or 3
-    @Published var concBeats: Int = 3
-    @Published var eccBeats:  Int = 3
+    /// Discrete beats (pulses) per phase. Allowed: 1-2-3-4
+    @Published var concBeats: Int = 4
+    @Published var eccBeats:  Int = 4
 
     /// Optional per-phase numeric cues "1-2-3"
     @Published var showConcBeatNumbers: Bool = false
@@ -50,8 +50,8 @@ final class WorkoutViewModel: ObservableObject {
     var repDuration: Double { concDuration + eccDuration }
 
     /// Effective beats (clamped to 1...3)
-    var concBeatsEffective: Int { min(max(concBeats, 1), 3) }
-    var eccBeatsEffective:  Int { min(max(eccBeats,  1), 3) }
+    var concBeatsEffective: Int { min(max(concBeats, 1), 4) }
+    var eccBeatsEffective:  Int { min(max(eccBeats,  1), 4) }
 
     /// Sub-beat durations per phase
     private var concSubBeat: Double { concDuration / Double(concBeatsEffective) }
