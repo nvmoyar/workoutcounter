@@ -50,7 +50,7 @@ struct WorkoutView: View {
 
                         Button {
                             guard let id = store.selectedID,
-                                  var current = store.preset(id: id) else { return }
+                                  let current = store.preset(id: id) else { return }
                             // overwrite fields with current VM config, keep id & name
                             let updated = WorkoutPreset(
                                 id: current.id,
