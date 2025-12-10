@@ -200,13 +200,14 @@ struct WorkoutView: View {
                     .frame(width: 160)
                 }
             }
-
+            
+            /*
             // Optional 1–2–3 toggles
             VStack(alignment: .leading, spacing: 8) {
                 Toggle("Show 1-2-3 (Concentric)", isOn: $vm.showConcBeatNumbers)
                 Toggle("Show 1-2-3 (Eccentric)",  isOn: $vm.showEccBeatNumbers)
             }
-
+             */
             Text(String(format: "Rep duration: %.1fs", vm.repDuration))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -293,7 +294,7 @@ struct WorkoutView: View {
     }
     private var coachCueLine: String {
         guard vm.currentRep > 0 else { return "—" }
-        return "Beat \(vm.currentBeatInPhase)/\(vm.phaseBeats) (\(vm.phase.rawValue))  |  Rep \(vm.currentRep)"
+        return /*"Beat \(vm.currentBeatInPhase)/\(vm.phaseBeats)*/ "(\(vm.phase.rawValue))  |  Rep \(vm.currentRep)"
     }
     @ViewBuilder
     private func controlCircle(icon: String, label: String) -> some View {
