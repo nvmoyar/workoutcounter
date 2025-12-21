@@ -565,7 +565,7 @@
 				5DC186B12E02ADB8002DA7FE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		5DC186B22E02ADB8002DA7FE /* Build configuration list for PBXNativeTarget "WorkoutCounter" */ = {
 			isa = XCConfigurationList;
@@ -574,7 +574,7 @@
 				5DC186B42E02ADB8002DA7FE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		5DC186B52E02ADB8002DA7FE /* Build configuration list for PBXNativeTarget "WorkoutCounterTests" */ = {
 			isa = XCConfigurationList;
@@ -583,7 +583,7 @@
 				5DC186B72E02ADB8002DA7FE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		5DC186B82E02ADB8002DA7FE /* Build configuration list for PBXNativeTarget "WorkoutCounterUITests" */ = {
 			isa = XCConfigurationList;
@@ -592,7 +592,7 @@
 				5DC186BA2E02ADB8002DA7FE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

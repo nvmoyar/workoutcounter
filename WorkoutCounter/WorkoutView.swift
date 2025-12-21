@@ -22,7 +22,7 @@ struct WorkoutView: View {
     @State private var newPresetName: String = ""
 
     var body: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 20) {
 
             // ────────────── PRESETS ──────────────
             GroupBox("Presets") {
